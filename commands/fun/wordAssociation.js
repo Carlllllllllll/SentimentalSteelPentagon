@@ -117,24 +117,25 @@ module.exports = {
             const userWord = message.content.trim().toLowerCase();
             const userId = message.author.id;
 
-            // Check if the message is from the command user and starts with "!"
             if (userId === commandUser.id) {
+                // Command user's messages
                 if (userWord.startsWith('!')) {
                     await message.delete().catch(console.error);
                     await message.author.send('You cannot send commands in the game channel.').catch(console.error);
                     return;
                 }
+                // Ignore other messages from the command user
+                return;
             }
 
-            // Ignore messages from other users
-            if (userId !== commandUser.id) return;
-
-            // Check if the word is correct
-            if (userWord === currentWord) {
-                currentWord = userWord;
-                await tempChannel.send(`Great choice, ${message.author}! The new word is: **${currentWord}**`);
-            } else {
-                await tempChannel.send(`${message.author}, "${userWord}" is not related to the word. Try again!`);
+            // Other users' messages starting with '!'
+            if (userWord.startsWith('!')) {
+                if (userWord === currentWord) {
+                    currentWord = userWord;
+                    await tempChannel.send(`Great choice, ${message.author}! The new word is: **${currentWord}**`);
+                } else {
+                    await tempChannel.send(`${message.author}, "${userWord}" is not related to the word.`);
+                }
             }
         });
 
