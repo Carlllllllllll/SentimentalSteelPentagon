@@ -11,7 +11,7 @@ const { EmbedBuilder } = require('@discordjs/builders');
 const { printWatermark } = require('./events/handler');
 
 const client = new Client({
-    intents: Object.keys(GatewayIntentBits).map((key) => GatewayIntentBits[key]),
+    intents: Object.keys(GatewayIntentBits).map(key => GatewayIntentBits[key]),
 });
 
 client.commands = new Collection();
@@ -198,4 +198,4 @@ client.distube = new DisTube(client, {
 });
 console.log('\x1b[35m[ MUSIC 1 ]\x1b[0m', '\x1b[32mDisTube Music System Active ✅\x1b[0m');
 
-client.login(process.env.TOKEN);
+module.exports = client; // Export the client instance
