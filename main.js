@@ -7,20 +7,17 @@ const { DisTube } = require('distube');
 const { YtDlpPlugin } = require('@distube/yt-dlp');
 const { SpotifyPlugin } = require('@distube/spotify');
 const { SoundCloudPlugin } = require('@distube/soundcloud');
-const {  Dynamic } = require('musicard'); 
+const { Dynamic } = require('musicard'); 
 const config = require('./config.json');
 const { printWatermark } = require('./events/handler');
 const { EmbedBuilder } = require('@discordjs/builders');
 const musicIcons = require('./UI/icons/musicicons'); 
-const client = new Client({
-    intents: Object.keys(GatewayIntentBits).map((a) => {
-      return GatewayIntentBits[a];
-    }),
-  });
 
+const client = new Client({
+    intents: Object.keys(GatewayIntentBits).map((a) => GatewayIntentBits[a]),
+});
 
 client.commands = new Collection();
-
 
 const commandsPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(commandsPath);
@@ -38,8 +35,14 @@ for (const folder of commandFolders) {
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, folder, file);
         const command = require(filePath);
-        client.commands.set(command.data.name, command);
-        commands.push(command.data.toJSON());
+
+        // Ensure the command has the correct structure
+        if (command.data && typeof command.data.name === 'string') {
+            client.commands.set(command.data.name, command);
+            commands.push(command.data.toJSON());
+        } else {
+            console.error(`Command file ${file} is missing required "data" or "name" property.`);
+        }
     }
 
     const folderDetails = `Folder: ${folder}, Number of commands: ${numCommands}`;
@@ -49,8 +52,6 @@ for (const folder of commandFolders) {
 }
 console.log('\x1b[35m%s\x1b[0m', `│ Total number of commands: ${totalCommands}`);
 console.log('\x1b[33m%s\x1b[0m', '└───────────────────────────────────────────┘');
-
-
 
 const eventsPath = path.join(__dirname, 'events');
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
@@ -64,8 +65,6 @@ for (const file of eventFiles) {
         client.on(event.name, (...args) => event.execute(...args, client));
     }
 }
-
-
 
 async function fetchExpectedCommandsCount() {
     try {
@@ -81,7 +80,7 @@ async function verifyCommandsCount() {
     const registeredCommandsCount = client.commands.size;
 
     if (expectedCommandsCount === -1) {
-        console.log('\x1b[33m[ WARNING ]\x1b[0m', '\x1b[32mUnbale to verify commands [ SERVER OFFLINE ]\x1b[0m');
+        console.log('\x1b[33m[ WARNING ]\x1b[0m', '\x1b[32mUnable to verify commands [ SERVER OFFLINE ]\x1b[0m');
         return;
     }
 
@@ -103,7 +102,6 @@ const fetchAndRegisterCommands = async () => {
 
         commands.forEach(command => {
             try {
-
                 client.commands.set(command.name, {
                     ...command,
                     execute: async (interaction) => {
@@ -135,17 +133,14 @@ const fetchAndRegisterCommands = async () => {
             }
         });
     } catch (error) {
-       
+        console.error('Error fetching and registering commands:', error);
     }
 };
-
-
 
 const antiSpam = require('./antimodules/antiSpam');
 const antiLink = require('./antimodules/antiLink');
 const antiNuke = require('./antimodules/antiNuke');
 const antiRaid = require('./antimodules/antiRaid'); 
-
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
@@ -164,7 +159,6 @@ client.once('ready', async () => {
             Routes.applicationCommands(client.user.id)
         );
 
- 
         if (registeredCommands.length !== commands.length) {
             console.log('\x1b[31m[ LOADER ]\x1b[0m \x1b[32mLoading Slash Commands 🛠️\x1b[0m');
 
@@ -201,10 +195,8 @@ client.distube
     .on('playSong', async (queue, song) => {
         if (queue.textChannel) {
             try {
-                
                 const musicCard = await generateMusicCard(song);
 
-               
                 const embed = {
                     color: 0xDC92FF, 
                     author: {
@@ -232,8 +224,6 @@ client.distube
     .on('addSong', async (queue, song) => {
         if (queue.textChannel) {
             try {
-
-               
                 const embed = {
                     color: 0xDC92FF,
                     description: `**${song.name}** \n- Duration: **${song.formattedDuration}**\n- Added by: ${song.user}`,
@@ -242,14 +232,13 @@ client.distube
                         icon_url: musicIcons.footerIcon 
                     },
                     author: {
-                        name: 'Song added sucessfully', 
+                        name: 'Song added successfully', 
                         url: 'https://discord.gg/xQF9f9yUEM',
                         icon_url: musicIcons.correctIcon 
                     },
                     timestamp: new Date().toISOString() 
                 };
                 
-
                 queue.textChannel.send({ embeds: [embed] });
             } catch (error) {
                 console.error('Error sending music card:', error);
@@ -265,36 +254,32 @@ client.distube
         }
     });
 
+const data = require('./UI/banners/musicard'); 
 
+async function generateMusicCard(song) {
+    try {
+        const randomIndex = Math.floor(Math.random() * data.backgroundImages.length);
+        const backgroundImage = data.backgroundImages[randomIndex];
+       
+        const musicCard = await Dynamic({
+            thumbnailImage: song.thumbnail,
+            name: song.name,
+            author: song.formattedDuration,
+            authorColor: "#FF7A00",
+            progress: 50,
+            imageDarkness: 60,
+            backgroundImage: backgroundImage, 
+            nameColor: "#FFFFFF",
+            progressColor: "#FF7A00",
+            progressBarColor: "#5F2D00",
+        });
 
-    const data = require('./UI/banners/musicard'); 
-
-    async function generateMusicCard(song) {
-        try {
-            
-            const randomIndex = Math.floor(Math.random() * data.backgroundImages.length);
-            const backgroundImage = data.backgroundImages[randomIndex];
-           
-            const musicCard = await Dynamic({
-                thumbnailImage: song.thumbnail,
-                name: song.name,
-                author: song.formattedDuration,
-                authorColor: "#FF7A00",
-                progress: 50,
-                imageDarkness: 60,
-                backgroundImage: backgroundImage, 
-                nameColor: "#FFFFFF",
-                progressColor: "#FF7A00",
-                progressBarColor: "#5F2D00",
-            });
-    
-            return musicCard;
-        } catch (error) {
-            console.error('Error generating music card:', error);
-            throw error;
-        }
+        return musicCard;
+    } catch (error) {
+        console.error('Error generating music card:', error);
+        throw error;
     }
-
+}
 
 function checkWelcomeSetup() {
     for (const [guildId, settings] of Object.entries(config.guilds)) {
@@ -321,5 +306,3 @@ app.listen(port, () => {
 client.login(process.env.TOKEN);
 
 module.exports = client;
-
-
