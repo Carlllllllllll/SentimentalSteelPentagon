@@ -17,7 +17,6 @@ function loadConfig() {
 }
 
 loadConfig();
-
 setInterval(loadConfig, 5000);
 
 function getOrdinalSuffix(number) {
