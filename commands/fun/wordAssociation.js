@@ -57,17 +57,17 @@ module.exports = {
             return interaction.reply({ content: `The bot is missing the following permissions: ${permissionNames}. Please adjust the permissions and try again.`, ephemeral: true });
         }
 
-        // Check if the command user already has a game channel
-        const userChannel = interaction.guild.channels.cache.find(channel => channel.name.startsWith(`word-association-${commandUser.id}`) && channel.type === ChannelType.GuildText);
-        if (userChannel) {
-            return interaction.reply({ content: `You already have a Word Association game in progress in ${userChannel}. Please finish your current game before starting a new one.`, ephemeral: true });
+        // Check if a game channel already exists with the username
+        const existingChannel = interaction.guild.channels.cache.find(channel => channel.name === `word-association-${commandUser.username.toLowerCase()}`);
+        if (existingChannel) {
+            return interaction.reply({ content: `You already have a Word Association game in progress in ${existingChannel}. Please finish your current game before starting a new one.`, ephemeral: true });
         }
 
         // Create a temporary channel (public)
         let tempChannel;
         try {
             tempChannel = await interaction.guild.channels.create({
-                name: `word-association-${commandUser.id}`,
+                name: `word-association-${commandUser.username.toLowerCase()}`,
                 type: ChannelType.GuildText,
                 permissionOverwrites: [
                     {
