@@ -117,7 +117,7 @@ module.exports = {
             const userWord = message.content.trim().toLowerCase();
             const userId = message.author.id;
 
-            // Only respond to messages from command user that start with "!"
+            // Check if the message is from the command user and starts with "!"
             if (userId === commandUser.id) {
                 if (userWord.startsWith('!')) {
                     await message.delete().catch(console.error);
