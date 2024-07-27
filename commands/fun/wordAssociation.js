@@ -214,17 +214,8 @@ module.exports = {
         // Notify about game start
         await tempChannel.send(`@everyone ${commandUser} has started a game of Word Association! Send your guesses in this channel.`);
 
-        // Send the initial word and hint to the command user in DM
-        try {
-            await commandUser.send(`The first word is: **${currentWord}**\nHint: ${wordHints[currentWord]}`);
-        } catch (error) {
-            console.error('Error sending DM to command user:', error);
-            if (!interaction.replied) {
-                await interaction.reply({ content: 'Failed to send DM to the game host. The game is cancelled.', ephemeral: true });
-            }
-            await tempChannel.delete().catch(console.error);
-            return;
-        }
+        // Send the initial word and hint in the temporary channel
+        await tempChannel.send(`The first word is: **${currentWord}**\nHint: ${wordHints[currentWord]}`);
 
         // Reply to interaction only once
         if (!interaction.replied) {
@@ -256,11 +247,6 @@ module.exports = {
                 if (userWord === `!${currentWord}`) {
                     currentWord = getRandomWord();
                     await tempChannel.send(`Great choice, ${message.author}! The new word has been updated.\nHint: ${wordHints[currentWord]}`);
-                    try {
-                        await commandUser.send(`The new word is: **${currentWord}**\nHint: ${wordHints[currentWord]}`);
-                    } catch (error) {
-                        console.error('Error sending DM to command user with new word:', error);
-                    }
                 } else {
                     await tempChannel.send(`${message.author}, "${userWord}" is not related to the word.`);
                 }
