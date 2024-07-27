@@ -4,10 +4,8 @@ const path = require('path');
 const { Wcard } = require('wcard-gen');
 const data = require('../UI/banners/welcomecards');
 
-
 const configPath = path.join(__dirname, '../config.json');
 let config = {};
-
 
 function loadConfig() {
     try {
@@ -18,10 +16,7 @@ function loadConfig() {
     }
 }
 
-
 loadConfig();
-
-
 setInterval(loadConfig, 5000);
 
 function getOrdinalSuffix(number) {
@@ -55,7 +50,6 @@ module.exports = (client) => {
         if (settings && settings.status) {
             const welcomeChannel = member.guild.channels.cache.get(settings.welcomeChannelId);
             if (welcomeChannel) {
-              
                 const memberCount = member.guild.memberCount;
                 const suffix = getOrdinalSuffix(memberCount);
                 const userName = member.user.username;
@@ -64,17 +58,15 @@ module.exports = (client) => {
                 const serverName = member.guild.name;
                 const serverIcon = member.guild.iconURL({ format: 'png', dynamic: true, size: 256 });
 
-               
                 const randomImage = getRandomImage(data.welcomeImages);
 
-                
                 const welcomecard = new Wcard()
                     .setName(userName)
                     .setAvatar(member.user.displayAvatarURL({ format: 'png' }))
                     .setTitle("Welcome to Server")
-                    .setColor("00e5ff") 
+                    .setColor("00e5ff")
                     .setBackground(randomImage);
-                
+
                 const card = await welcomecard.build();
                 const attachment = new AttachmentBuilder(card, { name: 'welcome.png' });
 
