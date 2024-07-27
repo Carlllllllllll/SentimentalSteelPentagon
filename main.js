@@ -23,9 +23,9 @@ const commandsPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(commandsPath);
 
 let totalCommands = 0; 
-
 const commands = [];
 const logDetails = []; 
+
 printWatermark();
 console.log('\x1b[33m%s\x1b[0m', '┌───────────────────────────────────────────┐');
 for (const folder of commandFolders) {
@@ -35,14 +35,8 @@ for (const folder of commandFolders) {
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, folder, file);
         const command = require(filePath);
-
-        // Ensure the command has the correct structure
-        if (command.data && typeof command.data.name === 'string') {
-            client.commands.set(command.data.name, command);
-            commands.push(command.data.toJSON());
-        } else {
-            console.error(`Command file ${file} is missing required "data" or "name" property.`);
-        }
+        client.commands.set(command.data.name, command);
+        commands.push(command.data.toJSON());
     }
 
     const folderDetails = `Folder: ${folder}, Number of commands: ${numCommands}`;
@@ -68,7 +62,7 @@ for (const file of eventFiles) {
 
 async function fetchExpectedCommandsCount() {
     try {
-        const response = await axios.get('http://shiva:3000/api/expected-commands-count');
+        const response = await axios.get('http://localhost:3000/api/expected-commands-count');
         return response.data.expectedCommandsCount;
     } catch (error) {
         return -1;
@@ -91,13 +85,16 @@ async function verifyCommandsCount() {
             expectedCommandsCount
         );
     } else {
-        console.log('\x1b[36m[ COMMANDS ]\x1b[0m', '\x1b[32mCommand count matched Bot is Secured ✅\x1b[0m');
+        console.log('\x1b[36m[ COMMANDS ]\x1b[0m', '\x1b[32mCommand count matched. Bot is Secured ✅\x1b[0m');
     }
 }
 
 const fetchAndRegisterCommands = async () => {
     try {
-        const response = await axios.get('http://shiva:3000/api/commands');
+        const apiUrl = 'http://localhost:3000/api/commands'; // Replace with the correct URL
+        console.log(`Fetching commands from: ${apiUrl}`);
+
+        const response = await axios.get(apiUrl);
         const commands = response.data;
 
         commands.forEach(command => {
@@ -196,7 +193,6 @@ client.distube
         if (queue.textChannel) {
             try {
                 const musicCard = await generateMusicCard(song);
-
                 const embed = {
                     color: 0xDC92FF, 
                     author: {
@@ -226,83 +222,25 @@ client.distube
             try {
                 const embed = {
                     color: 0xDC92FF,
-                    description: `**${song.name}** \n- Duration: **${song.formattedDuration}**\n- Added by: ${song.user}`,
-                    footer: {
-                        text: 'MUSIC PLAYER - Distube',
-                        icon_url: musicIcons.footerIcon 
-                    },
-                    author: {
-                        name: 'Song added successfully', 
-                        url: 'https://discord.gg/xQF9f9yUEM',
-                        icon_url: musicIcons.correctIcon 
-                    },
-                    timestamp: new Date().toISOString() 
+                    description: `**${song.name}** has been added to the queue!`,
                 };
-                
+
                 queue.textChannel.send({ embeds: [embed] });
             } catch (error) {
-                console.error('Error sending music card:', error);
+                console.error('Error sending add song notification:', error);
             }
-        }
-    })
-    .on('error', (channel, error) => {
-        console.error('Distube error:', error);
-        if (channel && typeof channel.send === 'function') {
-            channel.send(`An error occurred: ${error.message}`);
-        } else {
-            console.error(`Error channel is not a valid TextChannel: ${error.message}`);
         }
     });
 
-const data = require('./UI/banners/musicard'); 
+client.login(process.env.TOKEN);
 
 async function generateMusicCard(song) {
     try {
-        const randomIndex = Math.floor(Math.random() * data.backgroundImages.length);
-        const backgroundImage = data.backgroundImages[randomIndex];
-       
-        const musicCard = await Dynamic({
-            thumbnailImage: song.thumbnail,
-            name: song.name,
-            author: song.formattedDuration,
-            authorColor: "#FF7A00",
-            progress: 50,
-            imageDarkness: 60,
-            backgroundImage: backgroundImage, 
-            nameColor: "#FFFFFF",
-            progressColor: "#FF7A00",
-            progressBarColor: "#5F2D00",
-        });
-
-        return musicCard;
+        const musicCard = new Dynamic(song);
+        const buffer = await musicCard.render();
+        return buffer;
     } catch (error) {
         console.error('Error generating music card:', error);
         throw error;
     }
 }
-
-function checkWelcomeSetup() {
-    for (const [guildId, settings] of Object.entries(config.guilds)) {
-        const guild = client.guilds.cache.get(guildId);
-        if (guild) {
-            console.log('\x1b[36m[ WELCOME ACTIVE ]\x1b[0m \x1b[32mWelcome channel is %s for guild: %s\x1b[0m', settings.status ? 'enabled' : 'disabled', guild.name);
-        } else {
-            console.log('\x1b[31m%s\x1b[0m',`Guild with ID ${guildId} not found.`);
-        }
-    }
-}
-
-const express = require("express");
-const app = express();
-const port = 3000;
-app.get('/', (req, res) => {
-    const imagePath = path.join(__dirname, 'index.html');
-    res.sendFile(imagePath);
-});
-app.listen(port, () => {
-    console.log(`🔗 Listening to GlaceYT : http://localhost:${port}`);
-});
-
-client.login(process.env.TOKEN);
-
-module.exports = client;
