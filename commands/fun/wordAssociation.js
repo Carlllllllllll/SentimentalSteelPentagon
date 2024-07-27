@@ -110,36 +110,26 @@ module.exports = {
             console.warn('Interaction already replied');
         }
 
-        const filter = message => message.channel.id === tempChannel.id && message.author.id !== interaction.client.user.id;
+        const filter = message => message.channel.id === tempChannel.id;
         const collector = tempChannel.createMessageCollector({ filter, time: 300000 }); // 5 minutes
-
-        const userMessages = new Map();
 
         collector.on('collect', async message => {
             const userWord = message.content.trim().toLowerCase();
             const userId = message.author.id;
 
-            if (userId === interaction.client.user.id) return; // Ignore bot messages
-
-            if (userWord.startsWith('!')) {
-                if (userId === commandUser.id) {
+            // Only respond to messages from command user that start with "!"
+            if (userId === commandUser.id) {
+                if (userWord.startsWith('!')) {
                     await message.delete().catch(console.error);
                     await message.author.send('You cannot send commands in the game channel.').catch(console.error);
+                    return;
                 }
-                return;
             }
 
-            const lastMessage = userMessages.get(userId);
-            const now = Date.now();
+            // Ignore messages from other users
+            if (userId !== commandUser.id) return;
 
-            if (lastMessage && now - lastMessage < 5000) {
-                await message.delete().catch(console.error);
-                await message.author.send('Please wait a bit before sending another guess.').catch(console.error);
-                return;
-            }
-
-            userMessages.set(userId, now);
-
+            // Check if the word is correct
             if (userWord === currentWord) {
                 currentWord = userWord;
                 await tempChannel.send(`Great choice, ${message.author}! The new word is: **${currentWord}**`);
