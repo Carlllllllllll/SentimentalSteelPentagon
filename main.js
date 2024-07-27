@@ -12,6 +12,7 @@ const config = require('./config.json');
 const { printWatermark } = require('./events/handler');
 const { EmbedBuilder } = require('@discordjs/builders');
 const musicIcons = require('./UI/icons/musicicons'); 
+
 const client = new Client({
     intents: Object.keys(GatewayIntentBits).map((a) => GatewayIntentBits[a]),
 });
@@ -73,6 +74,7 @@ async function fetchExpectedCommandsCount() {
         const response = await axios.get('http://shiva:3000/api/expected-commands-count');
         return response.data.expectedCommandsCount;
     } catch (error) {
+        console.error('Failed to fetch expected commands count:', error);
         return -1;
     }
 }
@@ -97,7 +99,7 @@ async function verifyCommandsCount() {
     }
 }
 
-const fetchAndRegisterCommands = async () => {
+async function fetchAndRegisterCommands() {
     try {
         const response = await axios.get('http://shiva:3000/api/commands');
         const commands = response.data;
@@ -141,7 +143,7 @@ const fetchAndRegisterCommands = async () => {
     } catch (error) {
         console.error('Failed to fetch and register commands:', error);
     }
-};
+}
 
 const antiSpam = require('./antimodules/antiSpam');
 const antiLink = require('./antimodules/antiLink');
@@ -301,10 +303,12 @@ function checkWelcomeSetup() {
 const express = require("express");
 const app = express();
 const port = 3000;
+
 app.get('/', (req, res) => {
     const imagePath = path.join(__dirname, 'index.html');
     res.sendFile(imagePath);
 });
+
 app.listen(port, () => {
     console.log(`🔗 Listening to GlaceYT : http://localhost:${port}`);
 });
