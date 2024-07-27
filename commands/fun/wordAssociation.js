@@ -57,17 +57,17 @@ module.exports = {
             return interaction.reply({ content: `The bot is missing the following permissions: ${permissionNames}. Please adjust the permissions and try again.`, ephemeral: true });
         }
 
-        // Check if a game channel already exists
-        const existingChannel = interaction.guild.channels.cache.find(channel => channel.name.startsWith('word-association-') && channel.type === ChannelType.GuildText);
-        if (existingChannel) {
-            return interaction.reply({ content: `A Word Association game is already in progress in ${existingChannel}. Please finish the current game before starting a new one.`, ephemeral: true });
+        // Check if the command user already has a game channel
+        const userChannel = interaction.guild.channels.cache.find(channel => channel.name.startsWith(`word-association-${commandUser.id}`) && channel.type === ChannelType.GuildText);
+        if (userChannel) {
+            return interaction.reply({ content: `You already have a Word Association game in progress in ${userChannel}. Please finish your current game before starting a new one.`, ephemeral: true });
         }
 
         // Create a temporary channel (public)
         let tempChannel;
         try {
             tempChannel = await interaction.guild.channels.create({
-                name: `word-association-${commandUser.username}`,
+                name: `word-association-${commandUser.id}`,
                 type: ChannelType.GuildText,
                 permissionOverwrites: [
                     {
@@ -113,7 +113,6 @@ module.exports = {
         const filter = message => message.channel.id === tempChannel.id && message.author.id !== interaction.client.user.id;
         const collector = tempChannel.createMessageCollector({ filter, time: 300000 }); // 5 minutes
 
-        const userChances = new Map();
         const userMessages = new Map();
 
         collector.on('collect', async message => {
@@ -122,11 +121,9 @@ module.exports = {
 
             if (userId === interaction.client.user.id) return; // Ignore bot messages
 
-            let userChancesLeft = userChances.get(userId) ?? 3;
-
-            if (userChancesLeft <= 0 || (userWord.startsWith('!') && (userId === commandUser.id || userChancesLeft <= 0))) {
+            if (userWord.startsWith('!') && userId === commandUser.id) {
                 await message.delete().catch(console.error);
-                await message.author.send('You cannot send commands in the game channel or you have no chances left.').catch(console.error);
+                await message.author.send('You cannot send commands in the game channel.').catch(console.error);
                 return;
             }
 
@@ -143,18 +140,9 @@ module.exports = {
 
             if (userWord === currentWord) {
                 currentWord = userWord;
-                userChances.set(userId, 3); // Reset chances if correct
                 await tempChannel.send(`Great choice, ${message.author}! The new word is: **${currentWord}**`);
             } else {
-                userChancesLeft -= 1;
-                userChances.set(userId, userChancesLeft);
-
-                if (userChancesLeft > 0) {
-                    await tempChannel.send(`${message.author}, "${userWord}" is not related to the word. You have ${userChancesLeft} chance${userChancesLeft > 1 ? 's' : ''} left.`);
-                } else {
-                    await tempChannel.send(`${message.author}, you have no chances left. Game over for you!`);
-                    await message.author.send('You have no chances left in the Word Association game. The game is over for you.').catch(console.error);
-                }
+                await tempChannel.send(`${message.author}, "${userWord}" is not related to the word. Try again!`);
             }
         });
 
