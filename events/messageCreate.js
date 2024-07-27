@@ -15,7 +15,6 @@ module.exports = {
             return message.reply('There was an error reading the configuration.');
         }
 
-        // Check if config.prefixes and config.prefixes.server_specific exist
         const serverPrefixes = config.prefixes && config.prefixes.server_specific;
         const prefix = (serverPrefixes && serverPrefixes[message.guild.id]) || config.prefixes.default;
 
