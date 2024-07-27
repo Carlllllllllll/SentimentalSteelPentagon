@@ -11,7 +11,7 @@ const { EmbedBuilder } = require('@discordjs/builders');
 const { printWatermark } = require('./events/handler');
 
 const client = new Client({
-    intents: Object.keys(GatewayIntentBits).map((a) => GatewayIntentBits[a]),
+    intents: Object.keys(GatewayIntentBits).map((key) => GatewayIntentBits[key]),
 });
 
 client.commands = new Collection();
@@ -71,6 +71,7 @@ async function fetchExpectedCommandsCount() {
         const response = await axios.get('http://localhost:3000/api/expected-commands-count');
         return response.data.expectedCommandsCount;
     } catch (error) {
+        console.error('Error fetching expected commands count:', error);
         return -1;
     }
 }
