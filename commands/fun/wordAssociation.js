@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ChannelType, PermissionsBitField } = require('discord.js');
+const { ChannelType, PermissionsBitField, MessageActionRow, MessageButton } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -13,154 +13,95 @@ try {
 }
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('wordassociation')
-        .setDescription('Play a game of Word Association!'),
+    name: 'wordassociation',
+    description: 'Start a game of Word Association!',
     async execute(interaction) {
         if (!interaction.guild) {
             return interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
         }
 
         const commandUser = interaction.user;
-        const startWordObject = wordList[Math.floor(Math.random() * wordList.length)];
-        let currentWord = startWordObject.word;
-        let currentHint = startWordObject.hint;
 
-        // Check bot permissions
-        const botMember = await interaction.guild.members.fetch(interaction.client.user.id);
-        if (!botMember) {
-            return interaction.reply({ content: 'Failed to fetch bot member information.', ephemeral: true });
-        }
+        // Check if a channel already exists
+        let existingChannel = interaction.guild.channels.cache.find(ch => ch.name === `${commandUser.username}-word-association` && ch.type === ChannelType.GuildText);
 
-        const requiredPermissions = [
-            PermissionsBitField.Flags.ViewChannel,
-            PermissionsBitField.Flags.SendMessages,
-            PermissionsBitField.Flags.ManageChannels,
-        ];
-
-        const botPermissions = botMember.permissionsIn(interaction.channel);
-        const missingPermissions = requiredPermissions.filter(permission => !botPermissions.has(permission));
-
-        if (missingPermissions.length > 0) {
-            const permissionNames = missingPermissions.map(permission => {
-                switch (permission) {
-                    case PermissionsBitField.Flags.ViewChannel:
-                        return 'View Channels';
-                    case PermissionsBitField.Flags.SendMessages:
-                        return 'Send Messages';
-                    case PermissionsBitField.Flags.ManageChannels:
-                        return 'Manage Channels';
-                    default:
-                        return 'Unknown Permission';
-                }
-            }).join(', ');
-
-            return interaction.reply({ content: `The bot is missing the following permissions: ${permissionNames}. Please adjust the permissions and try again.`, ephemeral: true });
-        }
-
-        // Check if a game channel already exists with the username
-        const existingChannel = interaction.guild.channels.cache.find(channel => channel.name === `word-association-${commandUser.username.toLowerCase()}`);
         if (existingChannel) {
-            return interaction.reply({ content: `You already have a Word Association game in progress in ${existingChannel}. Please finish your current game before starting a new one.`, ephemeral: true });
+            return interaction.reply({ content: 'You already have an active game channel. Please finish the current game before starting a new one.', ephemeral: true });
         }
 
-        // Create a temporary channel (public)
-        let tempChannel;
+        // Create a new channel for the game
+        const newChannel = await interaction.guild.channels.create({
+            name: `${commandUser.username}-word-association`,
+            type: ChannelType.GuildText,
+            parent: interaction.channel.parent,
+            permissionOverwrites: [
+                {
+                    id: interaction.guild.id,
+                    deny: [PermissionsBitField.Flags.ViewChannel],
+                },
+                {
+                    id: commandUser.id,
+                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages],
+                },
+            ],
+        });
+
+        // Notify the user
+        await interaction.reply(`Game channel created: <#${newChannel.id}>`);
+
+        // Send DM with the word and hint to the command user
+        let currentWordObject = wordList[Math.floor(Math.random() * wordList.length)];
+        let currentWord = currentWordObject.word;
+        let currentHint = currentWordObject.hint;
+
         try {
-            tempChannel = await interaction.guild.channels.create({
-                name: `word-association-${commandUser.username.toLowerCase()}`,
-                type: ChannelType.GuildText,
-                permissionOverwrites: [
-                    {
-                        id: interaction.guild.roles.everyone,
-                        allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages], // Public access
-                    },
-                    {
-                        id: commandUser.id,
-                        allow: [PermissionsBitField.Flags.SendMessages],
-                    },
-                ],
-            });
+            await commandUser.send(`The word is ${currentWord}.\nHint: ${currentHint}`);
         } catch (error) {
-            console.error('Error creating temporary channel:', error);
-            if (!interaction.replied) {
-                await interaction.reply({ content: 'Failed to create a temporary channel for the game.', ephemeral: true });
-            }
-            return;
+            console.error('Error sending DM:', error);
+            return interaction.reply({ content: 'Failed to send a DM with the word and hint.', ephemeral: true });
         }
 
-        // Notify about game start
-        await tempChannel.send(`@everyone ${commandUser} has started a game of Word Association! Send your guesses in this channel.`);
+        // Filter messages in the game channel
+        const filter = (msg) => {
+            return !msg.content.startsWith('!') || msg.author.id === commandUser.id;
+        };
 
-        // Send the initial word and hint to the command user in DM
-        try {
-            await commandUser.send(`The first word is: **${currentWord}**\nHint: ${currentHint}`);
-        } catch (error) {
-            console.error('Error sending DM to command user:', error);
-            if (!interaction.replied) {
-                await interaction.reply({ content: 'Failed to send DM to the game host. The game is cancelled.', ephemeral: true });
-            }
-            await tempChannel.delete().catch(console.error);
-            return;
-        }
+        const collector = newChannel.createMessageCollector({ filter, time: 60000 });
 
-        // Reply to interaction only once
-        if (!interaction.replied) {
-            await interaction.reply({ content: `Game started in ${tempChannel}. Good luck!`, ephemeral: true });
-        } else {
-            console.warn('Interaction already replied');
-        }
-
-        const filter = message => message.channel.id === tempChannel.id;
-        const collector = tempChannel.createMessageCollector({ filter, time: 300000 }); // 5 minutes
-
-        collector.on('collect', async message => {
-            const userWord = message.content.trim().toLowerCase();
-            const userId = message.author.id;
-
-            if (userId === commandUser.id) {
-                // Command user's messages
-                if (userWord.startsWith('!')) {
-                    await message.delete().catch(console.error);
-                    await message.author.send('You cannot send commands in the game channel.').catch(console.error);
-                    return;
-                }
-                // Ignore other messages from the command user
+        collector.on('collect', async (msg) => {
+            if (msg.content.startsWith('!') && msg.author.id === commandUser.id) {
+                await msg.delete();
                 return;
             }
 
-            // Other users' messages starting with '!'
-            if (userWord.startsWith('!')) {
-                if (userWord === currentWord) {
+            if (msg.content.startsWith('!')) {
+                if (msg.content.toLowerCase() === currentWord.toLowerCase()) {
+                    try {
+                        await commandUser.send(`Congratulations! You guessed the word correctly. The new word is being sent to you.`);
+                    } catch (error) {
+                        console.error('Error sending DM:', error);
+                    }
+
+                    // Pick a new word and hint
                     currentWordObject = wordList[Math.floor(Math.random() * wordList.length)];
                     currentWord = currentWordObject.word;
                     currentHint = currentWordObject.hint;
 
-                    await tempChannel.send(`Great choice, ${message.author}! The new word has been updated.`);
                     try {
-                        await commandUser.send(`The new word is: **${currentWord}**\nHint: ${currentHint}`);
+                        await commandUser.send(`The new word is ${currentWord}.\nHint: ${currentHint}`);
                     } catch (error) {
-                        console.error('Error sending DM to command user with new word:', error);
+                        console.error('Error sending DM:', error);
+                        return interaction.reply({ content: 'Failed to send a DM with the new word and hint.', ephemeral: true });
                     }
                 } else {
-                    await tempChannel.send(`${message.author}, "${userWord}" is not related to the word.`);
+                    await msg.reply('The message is not related to the word.');
                 }
             }
         });
 
-        collector.on('end', collected => {
-            if (collected.size === 0) {
-                commandUser.send('No one responded to your Word Association game. The game has ended.');
-            } else {
-                tempChannel.send('The game has ended. Thank you for playing!');
-            }
-            tempChannel.delete().catch(console.error);
+        collector.on('end', async () => {
+            await newChannel.send('The game has ended.');
+            setTimeout(() => newChannel.delete(), 5000);
         });
-    }
+    },
 };
-
-// Helper function to determine if two words are related (simple placeholder logic)
-function isRelated(word1, word2) {
-    // Replace with actual word association logic
-    return word1.length === word2.length; // Example logic
-}
