@@ -4,9 +4,9 @@ const path = require('path');
 
 const wordListPath = path.join(__dirname, '..', '..', '..', 'src', 'events', 'wordList.json');
 
-let words;
+let wordList;
 try {
-    words = JSON.parse(fs.readFileSync(wordListPath, 'utf8'));
+    wordList = JSON.parse(fs.readFileSync(wordListPath, 'utf8'));
 } catch (error) {
     console.error('Error reading word list:', error);
     throw error;
@@ -22,8 +22,9 @@ module.exports = {
         }
 
         const commandUser = interaction.user;
-        const startWord = words[Math.floor(Math.random() * words.length)];
-        let currentWord = startWord;
+        const startWordObject = wordList[Math.floor(Math.random() * wordList.length)];
+        let currentWord = startWordObject.word;
+        let currentHint = startWordObject.hint;
 
         // Check bot permissions
         const botMember = await interaction.guild.members.fetch(interaction.client.user.id);
@@ -91,9 +92,9 @@ module.exports = {
         // Notify about game start
         await tempChannel.send(`@everyone ${commandUser} has started a game of Word Association! Send your guesses in this channel.`);
 
-        // Send the initial word to the command user in DM
+        // Send the initial word and hint to the command user in DM
         try {
-            await commandUser.send(`The first word is: **${currentWord}**`);
+            await commandUser.send(`The first word is: **${currentWord}**\nHint: ${currentHint}`);
         } catch (error) {
             console.error('Error sending DM to command user:', error);
             if (!interaction.replied) {
@@ -131,8 +132,16 @@ module.exports = {
             // Other users' messages starting with '!'
             if (userWord.startsWith('!')) {
                 if (userWord === currentWord) {
-                    currentWord = userWord;
-                    await tempChannel.send(`Great choice, ${message.author}! The new word is: **${currentWord}**`);
+                    currentWordObject = wordList[Math.floor(Math.random() * wordList.length)];
+                    currentWord = currentWordObject.word;
+                    currentHint = currentWordObject.hint;
+
+                    await tempChannel.send(`Great choice, ${message.author}! The new word has been updated.`);
+                    try {
+                        await commandUser.send(`The new word is: **${currentWord}**\nHint: ${currentHint}`);
+                    } catch (error) {
+                        console.error('Error sending DM to command user with new word:', error);
+                    }
                 } else {
                     await tempChannel.send(`${message.author}, "${userWord}" is not related to the word.`);
                 }
