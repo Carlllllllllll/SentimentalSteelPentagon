@@ -7,11 +7,8 @@ const { DisTube } = require('distube');
 const { YtDlpPlugin } = require('@distube/yt-dlp');
 const { SpotifyPlugin } = require('@distube/spotify');
 const { SoundCloudPlugin } = require('@distube/soundcloud');
-const { Dynamic } = require('musicard'); 
-const config = require('./config.json');
-const { printWatermark } = require('./events/handler');
 const { EmbedBuilder } = require('@discordjs/builders');
-const musicIcons = require('./UI/icons/musicicons'); 
+const { printWatermark } = require('./events/handler');
 
 const client = new Client({
     intents: Object.keys(GatewayIntentBits).map((a) => GatewayIntentBits[a]),
@@ -22,9 +19,9 @@ client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(commandsPath);
 
-let totalCommands = 0; 
+let totalCommands = 0;
 const commands = [];
-const logDetails = []; 
+const logDetails = [];
 
 printWatermark();
 console.log('\x1b[33m%s\x1b[0m', '┌───────────────────────────────────────────┐');
@@ -35,14 +32,23 @@ for (const folder of commandFolders) {
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, folder, file);
         const command = require(filePath);
-        client.commands.set(command.data.name, command);
-        commands.push(command.data.toJSON());
+
+        if (command.data) {
+            try {
+                client.commands.set(command.data.name, command);
+                commands.push(command.data.toJSON());
+            } catch (error) {
+                console.error(`Error registering command ${command.data.name}:`, error);
+            }
+        } else {
+            console.error(`Command file ${file} does not export a valid command object.`);
+        }
     }
 
     const folderDetails = `Folder: ${folder}, Number of commands: ${numCommands}`;
     logDetails.push(folderDetails);
     console.log('\x1b[33m%s\x1b[0m', `│ ${folderDetails.padEnd(34)} `);
-    totalCommands += numCommands; 
+    totalCommands += numCommands;
 }
 console.log('\x1b[35m%s\x1b[0m', `│ Total number of commands: ${totalCommands}`);
 console.log('\x1b[33m%s\x1b[0m', '└───────────────────────────────────────────┘');
@@ -95,38 +101,42 @@ const fetchAndRegisterCommands = async () => {
         console.log(`Fetching commands from: ${apiUrl}`);
 
         const response = await axios.get(apiUrl);
-        const commands = response.data;
+        const commandsData = response.data;
 
-        commands.forEach(command => {
-            try {
-                client.commands.set(command.name, {
-                    ...command,
-                    execute: async (interaction) => {
-                        try {
-                            const embed = new EmbedBuilder()
-                                .setTitle(command.embed.title)
-                                .setDescription(command.embed.description)
-                                .setImage(command.embed.image)
-                                .addFields(command.embed.fields)
-                                .setColor(command.embed.color)
-                                .setFooter({ 
-                                    text: command.embed.footer.text, 
-                                    iconURL: command.embed.footer.icon_url 
-                                })
-                                .setAuthor({ 
-                                    name: command.embed.author.name, 
-                                    iconURL: command.embed.author.icon_url 
-                                });
+        commandsData.forEach(command => {
+            if (command.name && command.embed) {
+                try {
+                    client.commands.set(command.name, {
+                        ...command,
+                        execute: async (interaction) => {
+                            try {
+                                const embed = new EmbedBuilder()
+                                    .setTitle(command.embed.title)
+                                    .setDescription(command.embed.description)
+                                    .setImage(command.embed.image)
+                                    .addFields(command.embed.fields)
+                                    .setColor(command.embed.color)
+                                    .setFooter({ 
+                                        text: command.embed.footer.text, 
+                                        iconURL: command.embed.footer.icon_url 
+                                    })
+                                    .setAuthor({ 
+                                        name: command.embed.author.name, 
+                                        iconURL: command.embed.author.icon_url 
+                                    });
 
-                            await interaction.reply({ embeds: [embed] });
-                        } catch (error) {
-                            console.error(`Error executing command ${command.name}:`, error);
-                            await interaction.reply('Failed to execute the command.');
+                                await interaction.reply({ embeds: [embed] });
+                            } catch (error) {
+                                console.error(`Error executing command ${command.name}:`, error);
+                                await interaction.reply('Failed to execute the command.');
+                            }
                         }
-                    }
-                });
-            } catch (error) {
-                console.error(`Validation error for command ${command.name}:`, error.message);
+                    });
+                } catch (error) {
+                    console.error(`Validation error for command ${command.name}:`, error.message);
+                }
+            } else {
+                console.error(`Invalid command format: ${command.name}`);
             }
         });
     } catch (error) {
@@ -137,14 +147,13 @@ const fetchAndRegisterCommands = async () => {
 const antiSpam = require('./antimodules/antiSpam');
 const antiLink = require('./antimodules/antiLink');
 const antiNuke = require('./antimodules/antiNuke');
-const antiRaid = require('./antimodules/antiRaid'); 
+const antiRaid = require('./antimodules/antiRaid');
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 client.once('ready', async () => {
     console.log(`\x1b[31m[ CORE ]\x1b[0m \x1b[32mBot Name:  \x1b[0m${client.user.tag}`);
     console.log(`\x1b[31m[ CORE ]\x1b[0m \x1b[32mClient ID: \x1b[0m${client.user.id}`);
-    checkWelcomeSetup();
     antiSpam(client);
     antiLink(client);
     antiNuke(client);
@@ -188,59 +197,4 @@ client.distube = new DisTube(client, {
 });
 console.log('\x1b[35m[ MUSIC 1 ]\x1b[0m', '\x1b[32mDisTube Music System Active ✅\x1b[0m');
 
-client.distube
-    .on('playSong', async (queue, song) => {
-        if (queue.textChannel) {
-            try {
-                const musicCard = await generateMusicCard(song);
-                const embed = {
-                    color: 0xDC92FF, 
-                    author: {
-                        name: 'Now playing', 
-                        url: 'https://discord.gg/xQF9f9yUEM',
-                        icon_url: musicIcons.playerIcon 
-                    },
-                    description: `- Song name: **${song.name}** \n- Duration: **${song.formattedDuration}**\n- Requested by: ${song.user}`,
-                    image: {
-                        url: 'attachment://musicCard.png' 
-                    },
-                    footer: {
-                        text: 'MUSIC PLAYER - Distube',
-                        icon_url: musicIcons.footerIcon 
-                    },
-                    timestamp: new Date().toISOString() 
-                };
-
-                queue.textChannel.send({ embeds: [embed], files: [{ attachment: musicCard, name: 'musicCard.png' }] });
-            } catch (error) {
-                console.error('Error sending music card:', error);
-            }
-        }
-    })
-    .on('addSong', async (queue, song) => {
-        if (queue.textChannel) {
-            try {
-                const embed = {
-                    color: 0xDC92FF,
-                    description: `**${song.name}** has been added to the queue!`,
-                };
-
-                queue.textChannel.send({ embeds: [embed] });
-            } catch (error) {
-                console.error('Error sending add song notification:', error);
-            }
-        }
-    });
-
 client.login(process.env.TOKEN);
-
-async function generateMusicCard(song) {
-    try {
-        const musicCard = new Dynamic(song);
-        const buffer = await musicCard.render();
-        return buffer;
-    } catch (error) {
-        console.error('Error generating music card:', error);
-        throw error;
-    }
-}
