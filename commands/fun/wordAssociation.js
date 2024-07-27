@@ -121,9 +121,11 @@ module.exports = {
 
             if (userId === interaction.client.user.id) return; // Ignore bot messages
 
-            if (userWord.startsWith('!') && userId === commandUser.id) {
-                await message.delete().catch(console.error);
-                await message.author.send('You cannot send commands in the game channel.').catch(console.error);
+            if (userWord.startsWith('!')) {
+                if (userId === commandUser.id) {
+                    await message.delete().catch(console.error);
+                    await message.author.send('You cannot send commands in the game channel.').catch(console.error);
+                }
                 return;
             }
 
