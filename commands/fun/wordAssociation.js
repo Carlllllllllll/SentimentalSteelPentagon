@@ -130,11 +130,11 @@ const wordHints = {
     '!muffin': 'A small baked good, typically sweet.',
     '!socks': 'Garments worn on the feet.',
     '!window': 'An opening in a wall for light and air.'
-    // Add more words and hints as needed...
+    
 };
 
 let currentWord = '';
-let chances = 3; // Default number of chances
+let chances = 3; 
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -148,7 +148,7 @@ module.exports = {
         const commandUser = interaction.user;
         currentWord = getRandomWord();
 
-        // Check bot permissions
+        
         const botMember = await interaction.guild.members.fetch(interaction.client.user.id);
         if (!botMember) {
             return interaction.reply({ content: 'Failed to fetch bot member information.', ephemeral: true });
@@ -180,13 +180,13 @@ module.exports = {
             return interaction.reply({ content: `The bot is missing the following permissions: ${permissionNames}. Please adjust the permissions and try again.`, ephemeral: true });
         }
 
-        // Check if a game channel already exists with the username
+        
         const existingChannel = interaction.guild.channels.cache.find(channel => channel.name === `word-association-${commandUser.username.toLowerCase()}`);
         if (existingChannel) {
             return interaction.reply({ content: `You already have a Word Association game in progress in ${existingChannel}. Please finish your current game before starting a new one.`, ephemeral: true });
         }
 
-        // Create a temporary channel (public)
+        
         let tempChannel;
         try {
             tempChannel = await interaction.guild.channels.create({
@@ -211,10 +211,10 @@ module.exports = {
             return;
         }
 
-        // Notify about game start
+
         await tempChannel.send(`${commandUser} has started a game of Word Association! Send your guesses in this channel. \n Hint: **${wordHints[currentWord]}**`);
 
-        // Send the initial word to the command user in DM
+       
         try {
             await commandUser.send(`The word is: **${currentWord}** keep it seacret 🙈🔒`);
         } catch (error) {
@@ -242,17 +242,17 @@ module.exports = {
             const userId = message.author.id;
 
             if (userId === commandUser.id) {
-                // Command user's messages
+                
                 if (userWord.startsWith('!')) {
                     await message.delete().catch(console.error);
                     await message.author.send('You cannot send commands in the game channel.').catch(console.error);
                     return;
                 }
-                // Ignore other messages from the command user
+                
                 return;
             }
 
-            // Other users' messages starting with '!'
+            
             if (userWord.startsWith('!')) {
                 if (userWord === currentWord) {
                     currentWord = getRandomWord();
@@ -279,14 +279,14 @@ module.exports = {
     }
 };
 
-// Helper function to get a random word from the wordHints
+
 function getRandomWord() {
     const words = Object.keys(wordHints);
     return words[Math.floor(Math.random() * words.length)];
 }
 
-// Helper function to determine if two words are related (simple placeholder logic)
+
 function isRelated(word1, word2) {
-    // Replace with actual word association logic
-    return word1.length === word2.length; // Example logic
+
+    return word1.length === word2.length; 
 }
