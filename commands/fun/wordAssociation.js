@@ -212,11 +212,11 @@ module.exports = {
         }
 
         // Notify about game start
-        await tempChannel.send(`@everyone ${commandUser} has started a game of Word Association! Send your guesses in this channel.`);
+        await tempChannel.send(`${commandUser} has started a game of Word Association! Send your guesses in this channel. \n Hint: **${wordHints[currentWord]}**`);
 
         // Send the initial word to the command user in DM
         try {
-            await commandUser.send(`The first word is: **${currentWord}**`);
+            await commandUser.send(`The word is: **${currentWord}** keep it seacret 🙈🔒`);
         } catch (error) {
             console.error('Error sending DM to command user:', error);
             if (!interaction.replied) {
@@ -226,8 +226,6 @@ module.exports = {
             return;
         }
 
-        // Send the hint in the temporary channel
-        await tempChannel.send(`Hint: ${wordHints[currentWord]}`);
 
         // Reply to interaction only once
         if (!interaction.replied) {
