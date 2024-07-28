@@ -1,52 +1,32 @@
 {
     "token": "",
-    "prefix": "!",
+    "prefixes": {
+        "default": "!",
+        "server_specific": {
+            "1145935264171180144": "/"
+        }
+    },
     "youtubeapi": "AIzaSyAholYB1sYcBuZu5pKfB0RTmLWyPG7rN44",
     "geniusToken": "0CHr9jtPjR7EKraXUVv6__8ELmEwFeUwt5vYAhk-is_fGOq-10-epdMzESkMPUnf",
-    "hentai": true,
-      "excessCommands": {
+    "hentaicommands": {
+        "1145935264171180144": {
+            "status": false
+        },
+        "1264193986231271555": {
+            "status": false
+        },
+        "1262750919905247233": {
+            "status": false
+        }
+    },
+    "excessCommands": {
         "utility": true,
         "other": true,
         "hentai": false,
-        "music": true,
+        "lavalink": true,
         "troll": true
     },
-    "spotifyClientId": "f71a3da30e254962965ca2a89d6f74b9",
-    "spotifyClientSecret": "199a619d22dd4e55a4a2c1a7a3d70e63",
     "lavalink": {
-        "host": "lavalink.oryzen.xyz",
-        "port": 80,
-        "password": "oryzen.xyz"
-    },
-    "guilds": {
-        "1145935264171180144": {
-            "welcomeChannelId": "1154545849846747177",
-            "status": false
-        }
-    },
-    "tickets": {
-        "1264193986231271555": {
-            "ticketChannelId": "1264203166455566347",
-            "adminRoleId": "1264203077200773191",
-            "status": false
-        }
-    },
-    "voiceChannelSetup": {
-        "1264193986231271555": {
-            "mainVoiceChannelId": "1264207248712929310",
-            "adminRoleId": "1264203077200773191",
-            "managerChannelId": "1264207197022457911",
-            "status": false
-        },
-        "1252159749076553738": {
-            "mainVoiceChannelId": "1264867964650262579",
-            "adminRoleId": "1264868575865213023",
-            "managerChannelId": "1264868000293584969",
-            "status": false
-        }
-    },
-    "music": {
-        "status": true,
         "lavalink": {
             "host": "37.114.42.191",
             "port": 6767,
@@ -54,10 +34,36 @@
             "secure": false
         }
     },
-    "autorole": {
-        "1264193986231271555": {
-            "roleId": "1264203077200773191",
+    "spotifyClientId": "f71a3da30e254962965ca2a89d6f74b9",
+    "spotifyClientSecret": "199a619d22dd4e55a4a2c1a7a3d70e63",
+    "guilds": {
+        "1145935264171180144": {
+            "welcomeChannelId": "1154545849846747177",
+            "status": true
+        }
+    },
+    "tickets": {
+        "1145935264171180144": {
+            "ticketChannelId": "1196160198541328394",
+            "adminRoleId": "1196160198541328394",
             "status": false
         }
+    },
+    "voiceChannelSetup": {
+        "1145935264171180144": {
+            "mainVoiceChannelId": "1196160198541328394",
+            "adminRoleId": "1196160198541328394",
+            "managerChannelId": "1196160198541328394",
+            "status": false
+        }
+    },
+    "autorole": {
+        "1145935264171180144": {
+            "roleId": "1196160198541328394",
+            "status": false
+        }
+    },
+    "owners": {
+        "": "1126336222206365696"
     }
 }
